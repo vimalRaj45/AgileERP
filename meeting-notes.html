@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Notes - Agile Board</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --light-bg: #f8f9fa;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .meeting-container {
+            max-width: 1400px;
+        }
+        
+        .gradient-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 25px;
+        }
+        
+        .meeting-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        .meeting-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+            border-color: var(--primary-color);
+        }
+        
+        .point-item {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: #f9f9f9;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        
+        .decision-item {
+            border-left-color: #2ecc71;
+        }
+        
+        .action-item {
+            border-left-color: #e74c3c;
+        }
+        
+        .attendee-tag {
+            background: #e3f2fd;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: #2c3e50;
+            border: 1px solid #bbdefb;
+        }
+        
+        .countdown-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+        }
+        
+        .point-input-group {
+            margin-bottom: 10px;
+        }
+        
+        .last-meeting-highlight {
+            border-left: 5px solid #3498db;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .section-divider {
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .empty-state {
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .gradient-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .countdown-badge {
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="bi bi-journal-text me-2"></i>Meeting Notes
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-kanban me-1"></i>Kanban Board</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/projects"><i class="bi bi-folder me-1"></i>Projects</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-light me-3" id="currentUser">
+                        <i class="bi bi-person-circle me-1"></i>Loading...
+                    </span>
+                    <button class="btn btn-outline-light me-2" onclick="showCreateMeetingModal()">
+                        <i class="bi bi-plus-circle me-1"></i>New Meeting
+                    </button>
+                    <button class="btn btn-light" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-1"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 meeting-container">
+        <!-- Project Selector -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <label for="projectSelect" class="form-label fw-bold">Select Project</label>
+                        <select id="projectSelect" class="form-select form-select-lg" onchange="loadProjectMeetings()">
+                            <option value="">Choose a project...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Meeting Banner -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div id="nextMeetingBanner" class="gradient-banner shadow" style="display: none;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-2"><i class="bi bi-calendar-event me-2"></i>Next Meeting</h3>
+                            <h4 id="nextMeetingTitle" class="mb-1"></h4>
+                            <p id="nextMeetingTime" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div id="countdownTimer" class="countdown-badge d-inline-block">
+                                <i class="bi bi-clock me-2"></i>Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Meeting Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div id="lastMeetingSection" style="display: none;">
+                    <div class="section-divider">
+                        <h3><i class="bi bi-clock-history me-2"></i>Last Meeting Summary</h3>
+                    </div>
+                    <div class="card last-meeting-highlight shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h4 id="lastMeetingTitle" class="card-title"></h4>
+                                    <div class="d-flex flex-wrap gap-3 text-muted mb-3">
+                                        <span><i class="bi bi-calendar-date me-1"></i> <span id="lastMeetingDate"></span></span>
+                                        <span><i class="bi bi-people me-1"></i> <span id="lastMeetingAttendees"></span></span>
+                                        <span><i class="bi bi-pencil me-1"></i> <span id="lastMeetingAuthor"></span></span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary status-badge">Completed</span>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <h5 class="text-primary"><i class="bi bi-chat-left-text me-1"></i>Discussion Points</h5>
+                                    <div id="lastDiscussionPoints" class="mt-2"></div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <h5 class="text-success"><i class="bi bi-check-circle me-1"></i>Decisions Made</h5>
+                                    <div id="lastDecisionsMade" class="mt-2"></div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <h5 class="text-danger"><i class="bi bi-list-task me-1"></i>Action Items</h5>
+                                    <div id="lastActionItems" class="mt-2"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <h5 class="text-secondary"><i class="bi bi-sticky me-1"></i>Additional Notes</h5>
+                                <p id="lastMeetingNotes" class="text-muted mt-2"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Meetings Section -->
+        <div class="row">
+            <div class="col-12">
+                <div id="meetingsList" style="display: none;">
+                    <div class="section-divider">
+                        <h3><i class="bi bi-journal-text me-2"></i>All Meetings</h3>
+                    </div>
+                    <div id="meetingsContainer"></div>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="noProjectSelected" class="empty-state text-center">
+                    <div class="card border-0 bg-transparent">
+                        <div class="card-body">
+                            <div class="empty-state-icon">
+                                <i class="bi bi-journal"></i>
+                            </div>
+                            <h3 class="mb-3">Select a Project</h3>
+                            <p class="text-muted mb-4">Choose a project from the dropdown above to view meeting notes</p>
+                            <button class="btn btn-primary btn-lg" onclick="document.getElementById('projectSelect').focus()">
+                                <i class="bi bi-folder2-open me-2"></i>Browse Projects
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Meeting Modal -->
+    <div class="modal fade" id="meetingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">Create Meeting Notes</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="meetingForm">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Meeting Title *</label>
+                                <input type="text" class="form-control" id="meetingTitle" placeholder="Daily Standup / Sprint Planning / Retrospective" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Meeting Type</label>
+                                <select class="form-select" id="meetingType">
+                                    <option value="standup">Daily Standup</option>
+                                    <option value="planning">Sprint Planning</option>
+                                    <option value="review">Sprint Review</option>
+                                    <option value="retrospective">Retrospective</option>
+                                    <option value="ad-hoc">Ad-hoc</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Meeting Date & Time *</label>
+                                <input type="datetime-local" class="form-control" id="meetingDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Next Meeting Date (Optional)</label>
+                                <input type="datetime-local" class="form-control" id="nextMeetingDate">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Attendees</label>
+                            <select class="form-select" id="meetingAttendees" multiple size="5">
+                                <!-- Users populated dynamically -->
+                            </select>
+                            <div class="form-text">Hold Ctrl/Cmd to select multiple attendees</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Discussion Points</label>
+                            <div id="discussionPointsContainer" class="mb-2">
+                                <div class="input-group point-input-group">
+                                    <input type="text" class="form-control discussion-point" placeholder="What was discussed...">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'discussion')">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addDiscussionPoint()">
+                                <i class="bi bi-plus-circle me-1"></i>Add Discussion Point
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Decisions Made</label>
+                            <div id="decisionsContainer" class="mb-2">
+                                <div class="input-group point-input-group">
+                                    <input type="text" class="form-control decision-point" placeholder="Decision made...">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'decision')">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addDecisionPoint()">
+                                <i class="bi bi-plus-circle me-1"></i>Add Decision
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Action Items</label>
+                            <div id="actionItemsContainer" class="mb-2">
+                                <div class="input-group point-input-group">
+                                    <input type="text" class="form-control action-point" placeholder="Action item...">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'action')">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addActionItem()">
+                                <i class="bi bi-plus-circle me-1"></i>Add Action Item
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="meetingNotes" rows="4" placeholder="Additional notes, follow-ups, or important information..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveMeetingBtn" onclick="saveMeeting()">Save Meeting Notes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Meeting Modal -->
+    <div class="modal fade" id="viewMeetingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="viewMeetingTitle"></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <span class="badge bg-secondary"><i class="bi bi-calendar me-1"></i> <span id="viewMeetingDate"></span></span>
+                        <span class="badge bg-secondary"><i class="bi bi-calendar-check me-1"></i> <span id="viewNextMeetingDate"></span></span>
+                        <span class="badge bg-secondary"><i class="bi bi-people me-1"></i> <span id="viewMeetingAttendees"></span></span>
+                        <span class="badge bg-secondary"><i class="bi bi-person me-1"></i> <span id="viewMeetingAuthor"></span></span>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <h6 class="text-primary border-bottom pb-2"><i class="bi bi-chat-left-text me-2"></i>Discussion Points</h6>
+                            <div id="viewDiscussionPoints" class="mt-2"></div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <h6 class="text-success border-bottom pb-2"><i class="bi bi-check-circle me-2"></i>Decisions Made</h6>
+                            <div id="viewDecisionsMade" class="mt-2"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-danger border-bottom pb-2"><i class="bi bi-list-task me-2"></i>Action Items</h6>
+                        <div id="viewActionItems" class="mt-2"></div>
+                    </div>
+                    
+                    <div>
+                        <h6 class="text-secondary border-bottom pb-2"><i class="bi bi-sticky me-2"></i>Additional Notes</h6>
+                        <p id="viewMeetingNotes" class="mt-2 text-muted"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="editCurrentMeeting()">Edit</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteCurrentMeeting()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let currentProject = null;
+        let currentMeetingId = null;
+        let users = [];
+        let meetings = [];
+        let meetingModal = null;
+        let viewMeetingModal = null;
+        
+        // Initialize Bootstrap modals
+        document.addEventListener('DOMContentLoaded', function() {
+            meetingModal = new bootstrap.Modal(document.getElementById('meetingModal'));
+            viewMeetingModal = new bootstrap.Modal(document.getElementById('viewMeetingModal'));
+            loadCurrentUser();
+        });
+        
+        // Load current user
+        async function loadCurrentUser() {
+            try {
+                const res = await fetch('/api/current-user');
+                if (!res.ok) throw new Error('Not authenticated');
+                
+                const user = await res.json();
+                if (user.id) {
+                    document.getElementById('currentUser').innerHTML = 
+                        `<i class="bi bi-person-circle me-1"></i>Welcome, ${user.username}`;
+                    await loadProjects();
+                    await loadUsers();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Error loading user:', error);
+                window.location.href = '/login';
+            }
+        }
+        
+        // Load projects for dropdown
+        async function loadProjects() {
+            try {
+                const res = await fetch('/api/projects');
+                const projects = await res.json();
+                
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">Choose a project...</option>';
+                
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                showToast('Error loading projects', 'danger');
+            }
+        }
+        
+        // Load users for attendees
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/users');
+                users = await res.json();
+                
+                const select = document.getElementById('meetingAttendees');
+                select.innerHTML = '';
+                
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.username;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+        
+        // Load meetings for selected project
+        async function loadProjectMeetings() {
+            const projectId = document.getElementById('projectSelect').value;
+            if (!projectId) {
+                document.getElementById('noProjectSelected').style.display = 'block';
+                document.getElementById('lastMeetingSection').style.display = 'none';
+                document.getElementById('nextMeetingBanner').style.display = 'none';
+                document.getElementById('meetingsList').style.display = 'none';
+                return;
+            }
+            
+            currentProject = projectId;
+            document.getElementById('noProjectSelected').style.display = 'none';
+            
+            try {
+                const res = await fetch(`/api/projects/${projectId}/meeting-notes`);
+                if (!res.ok) throw new Error('Failed to load meetings');
+                
+                meetings = await res.json();
+                meetings.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date));
+                
+                displayLastMeeting();
+                displayNextMeeting();
+                displayAllMeetings();
+            } catch (error) {
+                console.error('Error loading meetings:', error);
+                showToast('Error loading meeting notes', 'danger');
+            }
+        }
+        
+        // Display last meeting
+        function displayLastMeeting() {
+            if (meetings.length > 0) {
+                const lastMeeting = meetings[0];
+                document.getElementById('lastMeetingSection').style.display = 'block';
+                
+                document.getElementById('lastMeetingTitle').textContent = lastMeeting.title;
+                document.getElementById('lastMeetingDate').textContent = 
+                    new Date(lastMeeting.meeting_date).toLocaleString();
+                document.getElementById('lastMeetingAuthor').textContent = 
+                    `${lastMeeting.created_by_name}`;
+                
+                // Display attendees
+                const attendees = lastMeeting.attendee_names || [];
+                document.getElementById('lastMeetingAttendees').textContent = 
+                    attendees.join(', ') || 'No attendees';
+                
+                // Display discussion points
+                const discussionContainer = document.getElementById('lastDiscussionPoints');
+                discussionContainer.innerHTML = '';
+                if (lastMeeting.discussion_points && lastMeeting.discussion_points.length > 0) {
+                    lastMeeting.discussion_points.forEach(point => {
+                        const div = document.createElement('div');
+                        div.className = 'point-item';
+                        div.textContent = `• ${point}`;
+                        discussionContainer.appendChild(div);
+                    });
+                } else {
+                    discussionContainer.innerHTML = '<p class="text-muted">No discussion points recorded</p>';
+                }
+                
+                // Display decisions
+                const decisionsContainer = document.getElementById('lastDecisionsMade');
+                decisionsContainer.innerHTML = '';
+                if (lastMeeting.decisions_made && lastMeeting.decisions_made.length > 0) {
+                    lastMeeting.decisions_made.forEach(decision => {
+                        const div = document.createElement('div');
+                        div.className = 'point-item decision-item';
+                        div.textContent = `✓ ${decision}`;
+                        decisionsContainer.appendChild(div);
+                    });
+                } else {
+                    decisionsContainer.innerHTML = '<p class="text-muted">No decisions recorded</p>';
+                }
+                
+                // Display action items
+                const actionsContainer = document.getElementById('lastActionItems');
+                actionsContainer.innerHTML = '';
+                if (lastMeeting.action_items && lastMeeting.action_items.length > 0) {
+                    lastMeeting.action_items.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'point-item action-item';
+                        div.textContent = `→ ${item}`;
+                        actionsContainer.appendChild(div);
+                    });
+                } else {
+                    actionsContainer.innerHTML = '<p class="text-muted">No action items</p>';
+                }
+                
+                // Display notes
+                const notes = lastMeeting.notes || 'No additional notes';
+                document.getElementById('lastMeetingNotes').textContent = notes;
+            } else {
+                document.getElementById('lastMeetingSection').style.display = 'none';
+            }
+        }
+        
+        // Display next meeting with countdown
+        function displayNextMeeting() {
+            const upcomingMeetings = meetings.filter(m => 
+                m.next_meeting_date && new Date(m.next_meeting_date) > new Date()
+            );
+            
+            if (upcomingMeetings.length > 0) {
+                // Sort by next meeting date and get the closest one
+                upcomingMeetings.sort((a, b) => 
+                    new Date(a.next_meeting_date) - new Date(b.next_meeting_date)
+                );
+                
+                const nextMeeting = upcomingMeetings[0];
+                document.getElementById('nextMeetingBanner').style.display = 'block';
+                document.getElementById('nextMeetingTitle').textContent = nextMeeting.title;
+                
+                const nextDate = new Date(nextMeeting.next_meeting_date);
+                document.getElementById('nextMeetingTime').textContent = 
+                    `Scheduled for ${nextDate.toLocaleDateString()} at ${nextDate.toLocaleTimeString()}`;
+                
+                // Start countdown
+                updateCountdown(nextDate);
+                setInterval(() => updateCountdown(nextDate), 1000);
+            } else {
+                document.getElementById('nextMeetingBanner').style.display = 'none';
+            }
+        }
+        
+        // Update countdown timer
+        function updateCountdown(targetDate) {
+            const now = new Date();
+            const diff = targetDate - now;
+            
+            if (diff <= 0) {
+                document.getElementById('countdownTimer').innerHTML = 
+                    '<span style="color: #ffcc00;"><i class="bi bi-clock me-2"></i>Meeting should be starting now!</span>';
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            let countdownText = '';
+            if (days > 0) countdownText += `${days}d `;
+            if (hours > 0 || days > 0) countdownText += `${hours}h `;
+            if (minutes > 0 || hours > 0 || days > 0) countdownText += `${minutes}m `;
+            countdownText += `${seconds}s`;
+            
+            document.getElementById('countdownTimer').innerHTML = 
+                `<i class="bi bi-clock me-2"></i>${countdownText}`;
+        }
+        
+        // Display all meetings
+        function displayAllMeetings() {
+            document.getElementById('meetingsList').style.display = 'block';
+            const container = document.getElementById('meetingsContainer');
+            container.innerHTML = '';
+            
+            if (meetings.length > 0) {
+                meetings.forEach(meeting => {
+                    const meetingEl = document.createElement('div');
+                    meetingEl.className = 'card meeting-card shadow-sm mb-3';
+                    meetingEl.onclick = () => viewMeeting(meeting.id);
+                    
+                    const meetingDate = new Date(meeting.meeting_date);
+                    const nextDate = meeting.next_meeting_date ? new Date(meeting.next_meeting_date) : null;
+                    
+                    let statusBadge = '';
+                    if (nextDate && nextDate > new Date()) {
+                        statusBadge = '<span class="badge bg-warning text-dark">Next Scheduled</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-success">Completed</span>';
+                    }
+                    
+                    meetingEl.innerHTML = `
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title">${meeting.title}</h5>
+                                    <div class="text-muted mb-2">
+                                        <div><i class="bi bi-calendar me-1"></i> ${meetingDate.toLocaleString()}</div>
+                                        ${nextDate ? `<div><i class="bi bi-calendar-plus me-1"></i> Next: ${nextDate.toLocaleString()}</div>` : ''}
+                                        <div><i class="bi bi-person me-1"></i> By ${meeting.created_by_name}</div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        ${(meeting.attendee_names || []).map(name => 
+                                            `<span class="attendee-tag">${name}</span>`
+                                        ).join('')}
+                                    </div>
+                                    <div class="text-muted">
+                                        <span class="me-3"><i class="bi bi-chat-left-text me-1"></i> ${meeting.discussion_points?.length || 0}</span>
+                                        <span class="me-3"><i class="bi bi-check-circle me-1"></i> ${meeting.decisions_made?.length || 0}</span>
+                                        <span><i class="bi bi-list-task me-1"></i> ${meeting.action_items?.length || 0}</span>
+                                    </div>
+                                </div>
+                                <div>${statusBadge}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(meetingEl);
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state text-center">
+                        <div class="empty-state-icon">
+                            <i class="bi bi-calendar-x"></i>
+                        </div>
+                        <h3 class="mb-3">No Meetings Found</h3>
+                        <p class="text-muted mb-4">Start by creating your first meeting notes</p>
+                        <button class="btn btn-primary btn-lg" onclick="showCreateMeetingModal()">
+                            <i class="bi bi-plus-circle me-2"></i>Create First Meeting
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Meeting modal functions
+        function showCreateMeetingModal() {
+            if (!currentProject) {
+                showToast('Please select a project first', 'warning');
+                return;
+            }
+            
+            document.getElementById('modalTitle').textContent = 'Create Meeting Notes';
+            document.getElementById('saveMeetingBtn').textContent = 'Save Meeting Notes';
+            document.getElementById('saveMeetingBtn').onclick = saveMeeting;
+            
+            // Reset form
+            document.getElementById('meetingTitle').value = '';
+            document.getElementById('meetingDate').value = '';
+            document.getElementById('nextMeetingDate').value = '';
+            document.getElementById('meetingNotes').value = '';
+            document.getElementById('meetingType').value = 'standup';
+            
+            // Reset dynamic fields
+            resetDynamicFields();
+            
+            // Reset attendees selection
+            const attendeesSelect = document.getElementById('meetingAttendees');
+            Array.from(attendeesSelect.options).forEach(option => {
+                option.selected = false;
+            });
+            
+            meetingModal.show();
+        }
+        
+        function resetDynamicFields() {
+            // Clear discussion points
+            const discussionContainer = document.getElementById('discussionPointsContainer');
+            discussionContainer.innerHTML = `
+                <div class="input-group point-input-group">
+                    <input type="text" class="form-control discussion-point" placeholder="What was discussed...">
+                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'discussion')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Clear decisions
+            const decisionsContainer = document.getElementById('decisionsContainer');
+            decisionsContainer.innerHTML = `
+                <div class="input-group point-input-group">
+                    <input type="text" class="form-control decision-point" placeholder="Decision made...">
+                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'decision')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Clear action items
+            const actionsContainer = document.getElementById('actionItemsContainer');
+            actionsContainer.innerHTML = `
+                <div class="input-group point-input-group">
+                    <input type="text" class="form-control action-point" placeholder="Action item...">
+                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'action')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+        }
+        
+        function addDiscussionPoint() {
+            const container = document.getElementById('discussionPointsContainer');
+            const div = document.createElement('div');
+            div.className = 'input-group point-input-group';
+            div.innerHTML = `
+                <input type="text" class="form-control discussion-point" placeholder="What was discussed...">
+                <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'discussion')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+        
+        function addDecisionPoint() {
+            const container = document.getElementById('decisionsContainer');
+            const div = document.createElement('div');
+            div.className = 'input-group point-input-group';
+            div.innerHTML = `
+                <input type="text" class="form-control decision-point" placeholder="Decision made...">
+                <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'decision')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+        
+        function addActionItem() {
+            const container = document.getElementById('actionItemsContainer');
+            const div = document.createElement('div');
+            div.className = 'input-group point-input-group';
+            div.innerHTML = `
+                <input type="text" class="form-control action-point" placeholder="Action item...">
+                <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'action')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+        
+        function removePoint(button, type) {
+            const container = button.closest('.input-group').parentElement;
+            if (container.children.length > 1) {
+                button.closest('.input-group').remove();
+            } else {
+                // If it's the last one, just clear it
+                const input = button.previousElementSibling;
+                input.value = '';
+                input.focus();
+            }
+        }
+        
+        async function saveMeeting() {
+            const title = document.getElementById('meetingTitle').value;
+            const meetingDate = document.getElementById('meetingDate').value;
+            const nextMeetingDate = document.getElementById('nextMeetingDate').value;
+            const meetingType = document.getElementById('meetingType').value;
+            
+            if (!title.trim() || !meetingDate) {
+                showToast('Meeting title and date are required', 'warning');
+                return;
+            }
+            
+            // Collect discussion points
+            const discussionPoints = Array.from(
+                document.querySelectorAll('.discussion-point')
+            ).map(input => input.value.trim()).filter(val => val);
+            
+            // Collect decisions
+            const decisionsMade = Array.from(
+                document.querySelectorAll('.decision-point')
+            ).map(input => input.value.trim()).filter(val => val);
+            
+            // Collect action items
+            const actionItems = Array.from(
+                document.querySelectorAll('.action-point')
+            ).map(input => input.value.trim()).filter(val => val);
+            
+            // Collect attendees
+            const attendeesSelect = document.getElementById('meetingAttendees');
+            const attendees = Array.from(attendeesSelect.selectedOptions).map(opt => opt.value);
+            
+            const meetingData = {
+                title,
+                meeting_date: meetingDate,
+                next_meeting_date: nextMeetingDate || null,
+                meeting_type: meetingType,
+                attendees,
+                discussion_points: discussionPoints,
+                decisions_made: decisionsMade,
+                action_items: actionItems,
+                notes: document.getElementById('meetingNotes').value
+            };
+            
+            try {
+                const url = currentMeetingId ? 
+                    `/api/meeting-notes/${currentMeetingId}` : 
+                    `/api/projects/${currentProject}/meeting-notes`;
+                
+                const method = currentMeetingId ? 'PUT' : 'POST';
+                
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(meetingData)
+                });
+                
+                if (res.ok) {
+                    meetingModal.hide();
+                    await loadProjectMeetings();
+                    showToast(`Meeting ${currentMeetingId ? 'updated' : 'created'} successfully!`, 'success');
+                } else {
+                    throw new Error('Failed to save meeting');
+                }
+            } catch (error) {
+                console.error('Error saving meeting:', error);
+                showToast('Failed to save meeting notes', 'danger');
+            }
+        }
+        
+        // View meeting details
+        async function viewMeeting(meetingId) {
+            const meeting = meetings.find(m => m.id == meetingId);
+            if (!meeting) return;
+            
+            currentMeetingId = meetingId;
+            
+            document.getElementById('viewMeetingTitle').textContent = meeting.title;
+            document.getElementById('viewMeetingDate').textContent = 
+                new Date(meeting.meeting_date).toLocaleString();
+            
+            if (meeting.next_meeting_date) {
+                document.getElementById('viewNextMeetingDate').textContent = 
+                    new Date(meeting.next_meeting_date).toLocaleString();
+            } else {
+                document.getElementById('viewNextMeetingDate').textContent = 'Not scheduled';
+            }
+            
+            document.getElementById('viewMeetingAttendees').textContent = 
+                (meeting.attendee_names || []).join(', ') || 'None';
+            document.getElementById('viewMeetingAuthor').textContent = meeting.created_by_name;
+            
+            // Display discussion points
+            const discussionContainer = document.getElementById('viewDiscussionPoints');
+            discussionContainer.innerHTML = '';
+            if (meeting.discussion_points && meeting.discussion_points.length > 0) {
+                meeting.discussion_points.forEach(point => {
+                    const div = document.createElement('div');
+                    div.className = 'point-item';
+                    div.textContent = `• ${point}`;
+                    discussionContainer.appendChild(div);
+                });
+            } else {
+                discussionContainer.innerHTML = '<p class="text-muted">No discussion points recorded</p>';
+            }
+            
+            // Display decisions
+            const decisionsContainer = document.getElementById('viewDecisionsMade');
+            decisionsContainer.innerHTML = '';
+            if (meeting.decisions_made && meeting.decisions_made.length > 0) {
+                meeting.decisions_made.forEach(decision => {
+                    const div = document.createElement('div');
+                    div.className = 'point-item decision-item';
+                    div.textContent = `✓ ${decision}`;
+                    decisionsContainer.appendChild(div);
+                });
+            } else {
+                decisionsContainer.innerHTML = '<p class="text-muted">No decisions recorded</p>';
+            }
+            
+            // Display action items
+            const actionsContainer = document.getElementById('viewActionItems');
+            actionsContainer.innerHTML = '';
+            if (meeting.action_items && meeting.action_items.length > 0) {
+                meeting.action_items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'point-item action-item';
+                    div.textContent = `→ ${item}`;
+                    actionsContainer.appendChild(div);
+                });
+            } else {
+                actionsContainer.innerHTML = '<p class="text-muted">No action items</p>';
+            }
+            
+            // Display notes
+            const notes = meeting.notes || 'No additional notes';
+            document.getElementById('viewMeetingNotes').textContent = notes;
+            
+            viewMeetingModal.show();
+        }
+        
+        function editCurrentMeeting() {
+            viewMeetingModal.hide();
+            
+            // Find the meeting to edit
+            const meeting = meetings.find(m => m.id == currentMeetingId);
+            if (!meeting) return;
+            
+            document.getElementById('modalTitle').textContent = 'Edit Meeting Notes';
+            document.getElementById('saveMeetingBtn').textContent = 'Update Meeting Notes';
+            document.getElementById('saveMeetingBtn').onclick = saveMeeting;
+            
+            // Populate form with existing data
+            document.getElementById('meetingTitle').value = meeting.title;
+            document.getElementById('meetingDate').value = 
+                meeting.meeting_date ? meeting.meeting_date.replace('Z', '').slice(0, 16) : '';
+            document.getElementById('nextMeetingDate').value = 
+                meeting.next_meeting_date ? meeting.next_meeting_date.replace('Z', '').slice(0, 16) : '';
+            document.getElementById('meetingNotes').value = meeting.notes || '';
+            document.getElementById('meetingType').value = meeting.meeting_type || 'standup';
+            
+            // Populate attendees
+            const attendeesSelect = document.getElementById('meetingAttendees');
+            const attendeeIds = Array.isArray(meeting.attendees) ? 
+                meeting.attendees : JSON.parse(meeting.attendees || '[]');
+            
+            Array.from(attendeesSelect.options).forEach(option => {
+                option.selected = attendeeIds.includes(option.value);
+            });
+            
+            // Populate dynamic fields
+            resetDynamicFields();
+            
+            // Add discussion points
+            const discussionPoints = Array.isArray(meeting.discussion_points) ? 
+                meeting.discussion_points : JSON.parse(meeting.discussion_points || '[]');
+            
+            const discussionContainer = document.getElementById('discussionPointsContainer');
+            discussionContainer.innerHTML = '';
+            discussionPoints.forEach(point => {
+                const div = document.createElement('div');
+                div.className = 'input-group point-input-group';
+                div.innerHTML = `
+                    <input type="text" class="form-control discussion-point" value="${point}">
+                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'discussion')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                discussionContainer.appendChild(div);
+            });
+            if (discussionPoints.length === 0) addDiscussionPoint();
+            
+            // Add decisions
+            const decisionsMade = Array.isArray(meeting.decisions_made) ? 
+                meeting.decisions_made : JSON.parse(meeting.decisions_made || '[]');
+            
+            const decisionsContainer = document.getElementById('decisionsContainer');
+            decisionsContainer.innerHTML = '';
+            decisionsMade.forEach(decision => {
+                const div = document.createElement('div');
+                div.className = 'input-group point-input-group';
+                div.innerHTML = `
+                    <input type="text" class="form-control decision-point" value="${decision}">
+                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'decision')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                decisionsContainer.appendChild(div);
+            });
+            if (decisionsMade.length === 0) addDecisionPoint();
+            
+            // Add action items
+            const actionItems = Array.isArray(meeting.action_items) ? 
+                meeting.action_items : JSON.parse(meeting.action_items || '[]');
+            
+            const actionsContainer = document.getElementById('actionItemsContainer');
+            actionsContainer.innerHTML = '';
+            actionItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'input-group point-input-group';
+                div.innerHTML = `
+                    <input type="text" class="form-control action-point" value="${item}">
+                    <button class="btn btn-outline-danger" type="button" onclick="removePoint(this, 'action')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                actionsContainer.appendChild(div);
+            });
+            if (actionItems.length === 0) addActionItem();
+            
+            meetingModal.show();
+        }
+        
+        async function deleteCurrentMeeting() {
+            if (confirm('Are you sure you want to delete this meeting note? This action cannot be undone.')) {
+                try {
+                    const res = await fetch(`/api/meeting-notes/${currentMeetingId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (res.ok) {
+                        viewMeetingModal.hide();
+                        await loadProjectMeetings();
+                        showToast('Meeting deleted successfully', 'success');
+                    } else {
+                        throw new Error('Failed to delete meeting');
+                    }
+                } catch (error) {
+                    console.error('Error deleting meeting:', error);
+                    showToast('Failed to delete meeting', 'danger');
+                }
+            }
+        }
+        
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/login';
+            }
+        }
+        
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toastContainer';
+                toastContainer.className = 'position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '1050';
+                document.body.appendChild(toastContainer);
+            }
+            
+            const toastId = 'toast-' + Date.now();
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = `toast align-items-center text-bg-${type} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi ${getToastIcon(type)} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 3000
+            });
+            
+            bsToast.show();
+            
+            // Remove toast from DOM after hiding
+            toast.addEventListener('hidden.bs.toast', function () {
+                toast.remove();
+            });
+        }
+        
+        function getToastIcon(type) {
+            switch(type) {
+                case 'success': return 'bi-check-circle';
+                case 'danger': return 'bi-exclamation-circle';
+                case 'warning': return 'bi-exclamation-triangle';
+                default: return 'bi-info-circle';
+            }
+        }
+        
+        // Close modals when clicking outside (handled by Bootstrap)
+        // No need for custom click handlers
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + N for new meeting
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                showCreateMeetingModal();
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                meetingModal.hide();
+                viewMeetingModal.hide();
+            }
+        });
+    </script>
+</body>
+</html>

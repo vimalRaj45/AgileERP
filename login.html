@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agile Board - Login</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .user-btn {
+            text-align: left;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 5px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        .user-btn:hover {
+            background-color: #f8f9fa;
+            border-color: #0d6efd;
+            transform: translateX(5px);
+        }
+        
+        .user-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .demo-note {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="text-center mb-4">
+            <h2 class="mb-2">Agile Board Login</h2>
+            <p class="text-muted">Choose existing user or enter new username:</p>
+        </div>
+        
+        <div class="mb-4">
+            <h5 class="mb-3">Existing Users:</h5>
+            <div class="user-list" id="existingUsers">
+                <div class="text-center">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <small class="text-muted">Loading users...</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <label for="username" class="form-label">Or enter new username:</label>
+            <input type="text" class="form-control" id="username" placeholder="Enter username">
+        </div>
+        
+        <button class="btn btn-primary w-100 mb-3" onclick="login()">Login</button>
+        
+        <div class="demo-note">
+            <small>
+                <strong>Note:</strong> No password required for this demo. 
+                Users are created automatically.
+            </small>
+        </div>
+    </div>
+
+    <script>
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                const container = document.getElementById('existingUsers');
+                
+                if (users.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No existing users found</p>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                users.forEach(user => {
+                    const btn = document.createElement('button');
+                    btn.className = 'user-btn';
+                    btn.textContent = user.username;
+                    btn.onclick = () => {
+                        document.getElementById('username').value = user.username;
+                        login();
+                    };
+                    container.appendChild(btn);
+                });
+                
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('existingUsers').innerHTML = 
+                    '<p class="text-danger text-center">Error loading users</p>';
+            }
+        }
+        
+       async function login() {
+    const username = document.getElementById('username').value.trim();
+
+    // Allowed usernames
+    const allowedUsers = [
+        'vimalraj45', 'milan07', 'sibi07',
+        'ranga07', 'saravana07', 'thiru07', 'vishal07'
+    ];
+
+    if (!username) {
+        alert('Please enter a username');
+        return;
+    }
+
+    if (!allowedUsers.includes(username)) {
+        alert('You are not authorized to login.');
+        return;
+    }
+
+    const loginBtn = document.querySelector('button.btn-primary');
+    const originalText = loginBtn.innerHTML;
+    loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
+    loginBtn.disabled = true;
+
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        if (res.ok) {
+            window.location.href = '/';
+        } else {
+            throw new Error('Login failed');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+        loginBtn.innerHTML = originalText;
+        loginBtn.disabled = false;
+    }
+}
+
+        
+        // Enter key support
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+        
+        // Load users on page load
+        document.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+</body>
+</html>
