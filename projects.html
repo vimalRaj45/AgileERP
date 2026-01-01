@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - Agile Board</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .project-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .project-card-header {
+            background: linear-gradient(135deg, var(--primary-color), #0b5ed7);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        
+        .project-meta {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .project-meta i {
+            width: 20px;
+            text-align: center;
+        }
+        
+        .project-actions {
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+            margin-top: auto;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .user-badge {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            text-align: center;
+            height: 100%;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .project-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1;
+        }
+        
+        .project-description {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-height: 4.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 1.5rem;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+            
+            .user-badge {
+                display: none;
+            }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), #0b5ed7);
+            color: white;
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--primary-color), #0b5ed7);
+            border: none;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .btn-gradient:hover {
+            background: linear-gradient(135deg, #0b5ed7, var(--primary-color));
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+        }
+        
+        .card-footer {
+            background-color: transparent;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-primary" href="#">
+                <i class="bi bi-kanban-fill me-2"></i>Agile Board
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto align-items-center">
+                    <div class="me-3">
+                        <span class="user-badge" id="currentUser">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span>Loading...</span>
+                        </span>
+                    </div>
+                    <a class="nav-link active" href="#">
+                        <i class="bi bi-grid-3x3-gap me-1"></i>Projects
+                    </a>
+                    <a class="nav-link" href="/">
+                        <i class="bi bi-kanban me-1"></i>Kanban Board
+                    </a>
+                    <!-- Add to the navigation section in both files -->
+               <a href="/meetings" class="btn">Meeting Notes</a>
+                    <button class="btn btn-outline-danger btn-sm ms-2" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-1"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-5 fw-bold mb-3">Projects Dashboard</h1>
+                    <p class="lead mb-0">Manage all your projects in one place. Create new projects, track progress, and collaborate with your team.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <button class="btn btn-light btn-lg fw-bold" onclick="showCreateProjectModal()">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Project
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="row mb-4" id="statsRow" style="display: none;">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalProjects">0</div>
+                    <div class="stat-label">Total Projects</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="activeProjects">0</div>
+                    <div class="stat-label">Active Projects</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="recentProjects">0</div>
+                    <div class="stat-label">Recent (7 days)</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-number" id="myProjects">0</div>
+                    <div class="stat-label">My Projects</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="mb-0">All Projects</h3>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary active" onclick="filterProjects('all')">All</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="filterProjects('mine')">My Projects</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="filterProjects('recent')">Recent</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="projectsGrid">
+            <!-- Projects will be loaded here -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="row" id="emptyState" style="display: none;">
+            <div class="col-12">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-folder-plus"></i>
+                    </div>
+                    <h3 class="mb-3">No Projects Found</h3>
+                    <p class="text-muted mb-4">You haven't created any projects yet. Start by creating your first project to organize your work.</p>
+                    <button class="btn btn-primary btn-lg" onclick="showCreateProjectModal()">
+                        <i class="bi bi-plus-circle me-2"></i>Create Your First Project
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div class="modal fade" id="createProjectModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Project
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Project Name *</label>
+                        <input type="text" class="form-control form-control-lg" id="projectName" placeholder="Enter project name">
+                        <div class="form-text">Choose a descriptive name for your project</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <textarea class="form-control" id="projectDescription" rows="4" placeholder="Describe your project..."></textarea>
+                        <div class="form-text">What is this project about? What are the goals?</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Project Color</label>
+                        <div class="d-flex gap-2" id="colorPicker">
+                            <div class="color-option" data-color="#0d6efd" style="background-color: #0d6efd;"></div>
+                            <div class="color-option" data-color="#198754" style="background-color: #198754;"></div>
+                            <div class="color-option" data-color="#fd7e14" style="background-color: #fd7e14;"></div>
+                            <div class="color-option" data-color="#dc3545" style="background-color: #dc3545;"></div>
+                            <div class="color-option" data-color="#6f42c1" style="background-color: #6f42c1;"></div>
+                            <div class="color-option" data-color="#20c997" style="background-color: #20c997;"></div>
+                        </div>
+                        <input type="hidden" id="projectColor" value="#0d6efd">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient" onclick="createProject()">
+                        <i class="bi bi-plus-circle me-1"></i>Create Project
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let allProjects = [];
+        let currentUserId = null;
+
+        // Load current user
+        async function loadCurrentUser() {
+            const res = await fetch('/api/current-user');
+            const user = await res.json();
+            if (user.id) {
+                currentUserId = user.id;
+                document.getElementById('currentUser').innerHTML = `
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span>${user.username}</span>
+                `;
+                loadProjects();
+            } else {
+                window.location.href = '/login';
+            }
+        }
+
+        // Load projects
+        async function loadProjects() {
+            const res = await fetch('/api/projects');
+            allProjects = await res.json();
+            
+            updateStatistics();
+            renderProjects('all');
+            setupColorPicker();
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            
+            const total = allProjects.length;
+            const active = allProjects.length; // You can add an 'active' field to projects later
+            const recent = allProjects.filter(p => new Date(p.created_at) > sevenDaysAgo).length;
+            const mine = allProjects.filter(p => p.created_by === currentUserId).length;
+            
+            document.getElementById('totalProjects').textContent = total;
+            document.getElementById('activeProjects').textContent = active;
+            document.getElementById('recentProjects').textContent = recent;
+            document.getElementById('myProjects').textContent = mine;
+            
+            document.getElementById('statsRow').style.display = total > 0 ? 'flex' : 'none';
+        }
+
+        // Render projects based on filter
+        function renderProjects(filter) {
+            const container = document.getElementById('projectsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            let filteredProjects = allProjects;
+            
+            if (filter === 'mine') {
+                filteredProjects = allProjects.filter(p => p.created_by === currentUserId);
+            } else if (filter === 'recent') {
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+                filteredProjects = allProjects.filter(p => new Date(p.created_at) > sevenDaysAgo);
+            }
+            
+            container.innerHTML = '';
+            
+            if (filteredProjects.length > 0) {
+                emptyState.style.display = 'none';
+                
+                filteredProjects.forEach(project => {
+                    const projectCard = createProjectCard(project);
+                    container.appendChild(projectCard);
+                });
+            } else {
+                emptyState.style.display = 'block';
+            }
+            
+            // Update active filter button
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event?.target.classList.add('active');
+        }
+
+        // Filter projects
+        function filterProjects(type) {
+            renderProjects(type);
+        }
+
+        // Create project card element
+        function createProjectCard(project) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 col-lg-4 col-xl-3 mb-4';
+            
+            // Format date
+            const createdDate = new Date(project.created_at);
+            const formattedDate = createdDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            // Get initials for avatar
+            const nameParts = project.created_by_name.split(' ');
+            const initials = nameParts.map(part => part[0]).join('').toUpperCase();
+            
+            // Determine color for project
+            const projectColor = project.color || '#0d6efd';
+            
+            col.innerHTML = `
+                <div class="card project-card h-100">
+                    <div class="card-header project-card-header" style="background: linear-gradient(135deg, ${projectColor}, ${adjustColor(projectColor, -20)})">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-light text-dark mb-2">Project</span>
+                                <h5 class="card-title mb-0 text-white">${project.name}</h5>
+                            </div>
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-kanban me-1"></i>
+                                <span id="taskCount-${project.id}">Loading...</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="project-description mb-3">
+                            ${project.description || '<span class="text-muted fst-italic">No description provided</span>'}
+                        </div>
+                        
+                        <div class="project-meta">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-person-fill me-2"></i>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                        ${initials}
+                                    </div>
+                                    <span>${project.created_by_name}</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar me-2"></i>
+                                <span>Created ${formattedDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer project-actions">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="openProject(${project.id})">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Open Project
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="viewProjectDetails(${project.id})">
+                                <i class="bi bi-info-circle me-1"></i>View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Load task count for this project
+            loadTaskCount(project.id);
+            
+            return col;
+        }
+
+        // Load task count for a project
+        async function loadTaskCount(projectId) {
+            try {
+                const res = await fetch(`/api/projects/${projectId}/tasks`);
+                const tasks = await res.json();
+                const count = tasks.length;
+                const countEl = document.getElementById(`taskCount-${projectId}`);
+                if (countEl) {
+                    countEl.textContent = `${count} task${count !== 1 ? 's' : ''}`;
+                }
+            } catch (error) {
+                console.error('Error loading task count:', error);
+            }
+        }
+
+        // Adjust color brightness
+        function adjustColor(color, amount) {
+            const hex = color.replace('#', '');
+            const num = parseInt(hex, 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        // Setup color picker
+        function setupColorPicker() {
+            const colorOptions = document.querySelectorAll('.color-option');
+            const colorInput = document.getElementById('projectColor');
+            
+            colorOptions.forEach(option => {
+                option.style.cursor = 'pointer';
+                option.style.width = '30px';
+                option.style.height = '30px';
+                option.style.borderRadius = '50%';
+                option.style.border = '2px solid transparent';
+                option.style.transition = 'all 0.2s';
+                
+                option.addEventListener('click', function() {
+                    // Remove active class from all options
+                    colorOptions.forEach(opt => {
+                        opt.style.border = '2px solid transparent';
+                        opt.style.transform = 'scale(1)';
+                    });
+                    
+                    // Add active class to clicked option
+                    this.style.border = '2px solid #333';
+                    this.style.transform = 'scale(1.1)';
+                    
+                    // Update hidden input
+                    colorInput.value = this.dataset.color;
+                });
+                
+                // Set first option as active by default
+                if (option.dataset.color === '#0d6efd') {
+                    option.style.border = '2px solid #333';
+                    option.style.transform = 'scale(1.1)';
+                }
+            });
+        }
+
+        // Open project (navigate to kanban board)
+        function openProject(projectId) {
+            window.location.href = `/?project=${projectId}`;
+        }
+
+        // View project details
+        async function viewProjectDetails(projectId) {
+            // You can implement a detailed view modal here
+            alert(`Viewing details for project ${projectId}. This feature can be extended to show more details.`);
+        }
+
+        // Create project
+        function showCreateProjectModal() {
+            document.getElementById('projectName').value = '';
+            document.getElementById('projectDescription').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('createProjectModal'));
+            modal.show();
+        }
+
+        async function createProject() {
+            const name = document.getElementById('projectName').value.trim();
+            const description = document.getElementById('projectDescription').value.trim();
+            const color = document.getElementById('projectColor').value;
+            
+            if (!name) {
+                alert('Project name is required');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name, 
+                        description,
+                        color  // Add color to the project
+                    })
+                });
+                
+                if (res.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createProjectModal'));
+                    modal.hide();
+                    loadProjects();
+                } else {
+                    alert('Failed to create project');
+                }
+            } catch (error) {
+                console.error('Error creating project:', error);
+                alert('Error creating project. Please try again.');
+            }
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentUser();
+        });
+    </script>
+</body>
+</html>
