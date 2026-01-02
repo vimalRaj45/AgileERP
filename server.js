@@ -64,6 +64,85 @@ app.get('/', requireLogin, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+
+app.get("/api/leaderboard/advanced", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        u.id,
+        u.username,
+        COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'Done') AS completed_tasks,
+        COUNT(DISTINCT t.id) AS total_tasks,
+        COUNT(DISTINCT f.id) AS files_uploaded,
+        COUNT(DISTINCT c.id) AS comments_count,
+        COUNT(DISTINCT ai.id) FILTER (WHERE ai.status = 'Completed') AS action_items_done,
+        COUNT(DISTINCT al.id) AS activities,
+        (
+          COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'Done') * 5 +
+          COUNT(DISTINCT ai.id) FILTER (WHERE ai.status = 'Completed') * 4 +
+          COUNT(DISTINCT f.id) * 3 +
+          COUNT(DISTINCT c.id) * 2 +
+          COUNT(DISTINCT al.id)
+        ) AS score
+      FROM users u
+      LEFT JOIN tasks t ON t.assigned_to = u.id
+      LEFT JOIN files f ON f.user_id = u.id
+      LEFT JOIN comments c ON c.user_id = u.id
+      LEFT JOIN action_items ai ON ai.assigned_to = u.id
+      LEFT JOIN activity_log al ON al.user_id = u.id
+      GROUP BY u.id, u.username
+      ORDER BY score DESC
+    `);
+
+    res.json(result.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
+app.get("/api/projects/performance", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        p.id,
+        p.name,
+        COUNT(DISTINCT t.id) AS total_tasks,
+        COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'Done') AS completed_tasks,
+        ROUND(
+          (COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'Done') * 100.0) /
+          NULLIF(COUNT(DISTINCT t.id), 0),
+          2
+        ) AS completion_percent,
+        COUNT(DISTINCT ai.id) FILTER (WHERE ai.status = 'Completed') AS action_items_done,
+        COUNT(DISTINCT f.id) AS files_uploaded,
+        COUNT(DISTINCT c.id) AS comments_count,
+        COUNT(DISTINCT m.id) AS meetings_count,
+        COUNT(DISTINCT t.assigned_to) AS team_size,
+        (
+          COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'Done') * 5 +
+          COUNT(DISTINCT ai.id) FILTER (WHERE ai.status = 'Completed') * 4 +
+          COUNT(DISTINCT f.id) * 2 +
+          COUNT(DISTINCT c.id) +
+          COUNT(DISTINCT m.id) * 3
+        ) AS performance_score
+      FROM projects p
+      LEFT JOIN tasks t ON t.project_id = p.id
+      LEFT JOIN action_items ai ON ai.task_id = t.id
+      LEFT JOIN files f ON f.task_id = t.id
+      LEFT JOIN comments c ON c.task_id = t.id
+      LEFT JOIN meeting_notes m ON m.project_id = p.id
+      GROUP BY p.id, p.name
+      ORDER BY performance_score DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
@@ -71,6 +150,15 @@ app.get('/login', (req, res) => {
 app.get('/projects', requireLogin, (req, res) => {
     res.sendFile(path.join(__dirname, 'projects.html'));
 });
+
+app.get('/leader', requireLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, 'leader.html'));
+});
+
+app.get('/performance', requireLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, 'level.html'));
+});
+
 
 // API: Login/Logout
 app.post('/api/login', async (req, res) => {
