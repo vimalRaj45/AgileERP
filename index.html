@@ -443,6 +443,7 @@
                     <div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6>Attachments</h6>
+
                             <span class="badge bg-secondary" id="filesCount">0</span>
                         </div>
                         <div id="filesList" class="mb-3"></div>
@@ -784,9 +785,10 @@
                     fileEl.innerHTML = `
                         <div>
                             <i class="bi bi-file-earmark me-2"></i>
-                            <a href="${file.cloudinary_url}" target="_blank" class="text-decoration-none">
-                                ${file.filename}
-                            </a>
+                           <a href="${file.cloudinary_url}" download class="text-decoration-none">
+    ${file.filename}
+</a>
+
                             <small class="text-muted d-block">Uploaded by ${file.username}</small>
                         </div>
                         <small class="text-muted">
@@ -800,23 +802,51 @@
             }
         }
 
-        async function uploadFile() {
-            const fileInput = document.getElementById('fileUpload');
-            if (!fileInput.files.length) return;
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            
-            const res = await fetch(`/api/tasks/${currentTaskId}/files`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (res.ok) {
-                fileInput.value = '';
-                loadFiles(currentTaskId);
-            }
+       async function uploadFile() {
+    const fileInput = document.getElementById('fileUpload');
+
+    if (!fileInput.files.length) {
+        alert("Please select a file!");
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    // Allowed types: images + DOCX
+    const allowedTypes = [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // DOCX
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+        alert("Only DOCX and image files are allowed!");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch(`/api/tasks/${currentTaskId}/files`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            fileInput.value = '';
+            loadFiles(currentTaskId);
+            alert("File uploaded successfully!");
+        } else {
+            const data = await res.json();
+            alert(data.error || "Upload failed!");
         }
+    } catch (err) {
+        alert("Something went wrong. Try again!");
+    }
+}
+
 
         async function updateTaskStatus() {
             const status = document.getElementById('detailsStatus').value;

@@ -498,43 +498,54 @@ app.post('/api/tasks/:taskId/comments', requireLogin, async (req, res) => {
 
 // API: File Upload (Cloudinary)
 app.post('/api/tasks/:taskId/files', requireLogin, upload.single('file'), async (req, res) => {
-    try {
-        const fileBuffer = req.file.buffer;
-        const fileName = req.file.originalname;
-        
-        // Upload to Cloudinary
-        const uploadResult = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                { resource_type: 'auto' },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-            streamifier.createReadStream(fileBuffer).pipe(uploadStream);
-        });
-        
-        // Save to database
-        const result = await pool.query(
-            `INSERT INTO files (task_id, user_id, filename, cloudinary_url, cloudinary_public_id) 
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [req.params.taskId, req.session.userId, fileName, uploadResult.secure_url, uploadResult.public_id]
-        );
-        
-        await logActivity(
-            req.session.userId,
-            'upload',
-            'file',
-            result.rows[0].id,
-            { filename: fileName, taskId: req.params.taskId }
-        );
-        
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error('Upload error:', error);
-        res.status(500).json({ error: 'Upload failed' });
+  try {
+    const fileBuffer = req.file.buffer;
+    const fileName = req.file.originalname.toLowerCase();
+
+    // ✅ Only allow images and DOCX
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.docx'];
+    const isAllowed = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isAllowed) {
+      return res.status(400).json({ error: 'Only images and DOCX files are allowed' });
     }
+
+    // Decide Cloudinary resource type
+    const resourceType = fileName.endsWith('.docx') ? 'raw' : 'image';
+
+    // Upload to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: resourceType },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+    });
+
+    // Save in DB
+    const result = await pool.query(
+      `INSERT INTO files (task_id, user_id, filename, cloudinary_url, cloudinary_public_id)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [
+        req.params.taskId,
+        req.session.userId,
+        fileName,
+        uploadResult.secure_url,
+        uploadResult.public_id
+      ]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
 });
+
 
 app.get('/api/tasks/:taskId/files', requireLogin, async (req, res) => {
     const result = await pool.query(`
