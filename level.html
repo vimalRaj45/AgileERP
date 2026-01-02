@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Project Performance</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+
+<div class="container my-4">
+
+  <!-- 🔙 Back Button -->
+  <button class="btn btn-secondary mb-3" onclick="window.history.back()">← Back</button>
+
+  <h3 class="mb-4">📊 Project Performance Dashboard</h3>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <canvas id="scoreChart"></canvas>
+    </div>
+    <div class="col-md-6 mb-3">
+      <canvas id="completionChart"></canvas>
+    </div>
+  </div>
+
+  <table class="table table-bordered table-hover mt-4">
+    <thead class="table-dark">
+      <tr>
+        <th>Rank</th>
+        <th>Project</th>
+        <th>Score</th>
+        <th>Completion %</th>
+        <th>Tasks</th>
+        <th>Files</th>
+        <th>Comments</th>
+        <th>Meetings</th>
+      </tr>
+    </thead>
+    <tbody id="projects"></tbody>
+  </table>
+
+</div>
+
+<script>
+fetch("/api/projects/performance")
+  .then(res => res.json())
+  .then(data => {
+
+    const body = document.getElementById("projects");
+    const names = [];
+    const scores = [];
+    const completion = [];
+
+    data.forEach((p, i) => {
+      names.push(p.name);
+      scores.push(p.performance_score);
+      completion.push(p.completion_percent || 0);
+
+      body.innerHTML += `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${p.name}</td>
+          <td>${p.performance_score}</td>
+          <td>${p.completion_percent || 0}%</td>
+          <td>${p.completed_tasks}/${p.total_tasks}</td>
+          <td>${p.files_uploaded}</td>
+          <td>${p.comments_count}</td>
+          <td>${p.meetings_count}</td>
+        </tr>
+      `;
+    });
+
+    new Chart(scoreChart, {
+      type: "bar",
+      data: {
+        labels: names,
+        datasets: [{
+          label: "Performance Score",
+          data: scores
+        }]
+      },
+      options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+
+    new Chart(completionChart, {
+      type: "line",
+      data: {
+        labels: names,
+        datasets: [{
+          label: "Completion %",
+          data: completion,
+          tension: 0.3
+        }]
+      },
+      options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+
+  });
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
